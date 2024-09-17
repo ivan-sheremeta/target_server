@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Metrics and IP Tracking</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+    <style>
+        /* Стилі для прогрес-бара */
+        .progress-bar-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .progress-bar {
+            width: 0%;
+            height: 20px;
+            background-color: #4caf50;
+            text-align: center;
+            color: white;
+            border-radius: 5px;
+        }
+
+        .progress-bar.memory {
+            background-color: #2196F3;
+        }
+
+        /* Кольоровий індикатор статусу сервера */
+        .status-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: green;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        /* Статус текст */
+        .status-text {
+            font-weight: bold;
+            font-size: 16px;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Live Server Metrics</h1>
+
+    <!-- Індикатор статусу сервера -->
+    <div>
+        <span>Статус сервера:</span>
+        <span id="server-status-text" class="status-text">Нормальний</span>
+        <div id="server-status" class="status-indicator"></div>
+    </div>
+
+    <p>Завантаження процесора: <span id="cpu">Завантаження...</span>%</p>
+    <div class="progress-bar-container">
+        <div id="cpu-progress" class="progress-bar"></div>
+    </div>
+
+    <p>Використання пам'яті: <span id="memory">Завантаження...</span>%</p>
+    <div class="progress-bar-container">
+        <div id="memory-progress" class="progress-bar memory"></div>
+    </div>
+
+    <p>Передані дані (байт): <span id="sent">Завантаження...</span></p>
+    <p>Отримані дані (байт): <span id="recv">Завантаження...</span></p>
+
+    <h2>HTTP-запити</h2>
+    <ul id="http_ip_list"></ul>
+
+    <h2>Всі TCP/UDP-з'єднання</h2>
+    <ul id="tcp_ip_list"></ul>
+
+    <script type="text/javascript">
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+        // Оновлюємо метрики в реальному часі
+        socket.on('update_data', function(msg) {
+            // Оновлюємо метрики сервера
+            document.getElementById('cpu').innerHTML = msg.cpu;
+            document.getElementById('memory').innerHTML = msg.memory;
+            document.getElementById('sent').innerHTML = msg.sent;
+            document.getElementById('recv').innerHTML = msg.recv;
+
+            // Оновлюємо прогрес-бари для CPU та пам'яті
+            var cpuProgress = document.getElementById('cpu-progress');
+            cpuProgress.style.width = msg.cpu + '%';
+            cpuProgress.innerHTML = msg.cpu + '%';
+
+            var memoryProgress = document.getElementById('memory-progress');
+            memoryProgress.style.width = msg.memory + '%';
+            memoryProgress.innerHTML = msg.memory + '%';
+
+            // Оновлюємо список HTTP-запитів
+            var httpList = document.getElementById('http_ip_list');
+            httpList.innerHTML = '';  // Очищуємо поточний список
+            for (var ip in msg.http_ip_dict) {
+                var li = document.createElement('li');
+                li.textContent = ip + ' (' + msg.http_ip_dict[ip] + ')';  // Додаємо IP і кількість запитів
+                httpList.appendChild(li);
+            }
+
+            // Оновлюємо список TCP/UDP-з'єднань
+            var tcpList = document.getElementById('tcp_ip_list');
+            tcpList.innerHTML = '';  // Очищуємо поточний список
+            for (var ip in msg.tcp_ip_dict) {
+                var li = document.createElement('li');
+                li.textContent = ip + ' (' + msg.tcp_ip_dict[ip] + ')';  // Додаємо IP і кількість з'єднань
+                tcpList.appendChild(li);
+            }
+
+            // Оновлюємо індикатор статусу сервера
+            var statusIndicator = document.getElementById('server-status');
+            var statusText = document.getElementById('server-status-text');
+
+            if (msg.cpu < 50 && msg.memory < 50) {
+                statusIndicator.style.backgroundColor = "green";
+                statusText.innerHTML = "Нормальний";
+            } else if ((msg.cpu >= 60 && msg.cpu < 85) || (msg.memory >= 60 && msg.memory < 85)) {
+                statusIndicator.style.backgroundColor = "yellow";
+                statusText.innerHTML = "Підвищене навантаження";
+            } else {
+                statusIndicator.style.backgroundColor = "red";
+                statusText.innerHTML = "Високе навантаження";
+            }
+        });
+    </script>
+</body>
+</html>

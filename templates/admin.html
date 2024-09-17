@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Block IPs</title>
+</head>
+<body>
+    <h1>Адмін-панель блокування IP</h1>
+
+    <form method="POST">
+        <label for="ip">Введіть IP для блокування:</label>
+        <input type="text" id="ip" name="ip" required>
+        <button type="submit">Блокувати</button>
+    </form>
+
+    <h2>Заблоковані IP-адреси</h2>
+    <ul>
+        {% for ip in blocked_ips %}
+        <li>{{ ip }}</li>
+        {% else %}
+        <li>Заблокованих IP немає</li>
+        {% endfor %}
+    </ul>
+
+    <a href="/">На головну</a>
+</body>
+</html>
